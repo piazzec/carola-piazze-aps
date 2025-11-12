@@ -109,7 +109,7 @@ mi_sos_cheby2 = signal.iirdesign(wp=wp, ws=ws, gpass=alpha_p, gstop=alpha_s, ana
 wp = [0.8, 35] #comienzo y fin banda de paso
 ws = [0.1, 40]  #banda de stop [Hz]
 
-frecuencias=np.sort(np.concatenate(((0,fs/2),wp,ws, fs/2) ))
+frecuencias=np.sort(np.concatenate(((0,fs/2),wp,ws )))
 deseado= [0,0,1,1,0,0] #respuesta deseada del filtro en esa frecuencia, quiero que valga 1, que deje pasar en ese sector
 cant_coef=100 #numtaps es coeficientes, no confundir con orden
 fir_win_hamming=signal.firwin2(numtaps=cant_coef, freq=frecuencias, gain=deseado, fs=fs)
