@@ -37,6 +37,13 @@ estimadores:
     lo puedo pensar como un filtro lineal pero de tiempo variante, se va adecuando a lo que tenga que estimar. 
     antes de usar la funcion de interpolación me saco de encima el ruido
     
+    # t_nuevo= np.linspace(t[0],t[-1],len(t)*10)
+    # ECG_interp=cs(t_nuevo)
+
+    # plt.figure()
+
+    # plt.plot(t,ECG,'-',label='og')
+    # #plt.plot(t_nuevo,ECG_interp,'-',label='spline interpolado')
 """
 import numpy as np
 import matplotlib.pyplot as plt
