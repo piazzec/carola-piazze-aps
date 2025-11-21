@@ -22,32 +22,37 @@ mat_struct = sio.loadmat('./ecg.mat')
 ecg_one_lead = mat_struct['ecg_lead'].flatten()
 #qrst detenctions, calcular cuanto me tengo que mover desde la linea roja hasta la zona de deteccion
 
-ECG=ecg_one_lead [100000: 120500] #Tramo con Ruido
+ #Tramo con Ruido
+ECG=ecg_one_lead [100000: 120500]
 
 
 med200=signal.medfilt(ECG, 201)
-med600=signal.medfilt(ECG, 601) #b
-
-ECG_limpio=ECG-med600
-
-plt.plot(ECG, label='ECG')
-plt.plot(ECG_limpio, label='ECG Limpio')
-plt.plot(med600, label='b')
-plt.legend()
-
-ECG=ecg_one_lead [4000: 5500] #Tramo sin Ruido
-
-
-med200=signal.medfilt(ECG, 201)
-med600=signal.medfilt(ECG, 601) #b
+med600=signal.medfilt(med200, 601) #b
 
 ECG_limpio=ECG-med600
 
 plt.figure()
 plt.plot(ECG, label='ECG')
-plt.plot(ECG_limpio, label='ECG Limpio')
-plt.plot(med600, label='b')
+plt.plot(med600, label='b^')
+plt.plot(ECG_limpio, label='ECG limpio')
 plt.legend()
+plt.title("Tramo con ruido")
+
+#Tramo sin Ruido
+ECG=ecg_one_lead [4000: 5500] 
+
+
+med200=signal.medfilt(ECG, 201)
+med600=signal.medfilt(med200, 601) #b
+
+ECG_limpio=ECG-med600
+
+plt.figure()
+plt.plot(ECG, label='ECG')
+plt.plot(med600, label='b^')
+plt.plot(ECG_limpio, label='ECG limpio')
+plt.legend()
+plt.title("Tramo sin ruido")
 #%%
 
 ################
@@ -66,19 +71,37 @@ plt.legend()
 
 
 maximos= mat_struct['qrs_detections']
+#leresto 80 muestras a ojo, viendo el gráfico del ecg
 vector_max=maximos-80 #ahora tengo todos los valores e el medio de ese valle entre p y q
+
 #implementación
+
+
+ECG = ecg_one_lead 
+N=len(ECG)
 sx=vector_max.flatten()
-sy=ecg_one_lead[sx]
-N=len(ecg_one_lead)
+sy=ECG[sx]
+
+
 cs=CubicSpline(sx,sy)
-n=0
-b=cs(np.arange(N))
+n = np.arange(N)
+b=cs(n)
+
+ecg_limpio= ECG-b
 
 plt.figure()
 plt.scatter(sx,sy,color='red',marker='x')
 plt.plot(b,label='b, cubic spline')
-plt.plot(ecg_one_lead, color='lightgreen',label='ecg')
+plt.plot(ECG, color='lightgreen',label='ecg')
+plt.xlim(100000, 120500)
+plt.title("Estimación de línea de base mediante Spline cúbico")
+plt.show()
+
+plt.figure()
+plt.plot(ecg_limpio, label='ECG filtrado')
+plt.xlim(100000, 120500)
+plt.legend()
+plt.title("ECG después de sustraer la línea de base")
 plt.show()
 #%%
 ########################
@@ -104,27 +127,46 @@ para conocer el patron creo un protocolo
 
 #protopromediador
 
+#cargo patron
+qrs_pattern1= mat_struct['qrs_pattern1'] #el patron que nos dieron
+pattern2= qrs_pattern1.flatten() - np.mean(qrs_pattern1) #centro para poder correlar
 
-qrs_pattern1= mat_struct['qrs_pattern1']
-pattern2= qrs_pattern1.flatten() - np.mean(qrs_pattern1)#para poder correlar
-
-
+#correlación con ltfilter
 ecg_detection=signal.lfilter(b=pattern2,a=1, x=ecg_one_lead)
-ecg_detection_abs=np.abs(ecg_detection)[57:]
-ecg_detection_norm = ecg_detection_abs/np.std(ecg_detection_abs)
 
+ecg_detection_abs=np.abs(ecg_detection)[50:] #descarto muestras por delay, aplico modulo
+ecg_detection_norm = ecg_detection_abs/np.std(ecg_detection_abs) #normalizo
+
+#detección de picos
 qrs, _ = signal.find_peaks(ecg_detection_norm, height=1, distance=300)
+
+#normalizo para graficar junto al detector
 ecg_one_lead_abs=np.abs(ecg_one_lead)
 ecg_one_lead_norm=ecg_one_lead_abs/np.std(ecg_one_lead_abs)
 
 plt.figure()
-plt.plot(ecg_detection_norm)
-plt.plot(qrs, ecg_detection_norm[qrs], 'r*',label='qrs')
-plt.plot(ecg_one_lead_norm)
+plt.plot(ecg_detection_norm, label='Correlación normalizada')
+plt.plot(qrs, ecg_detection_norm[qrs], 'r*', label='Detecciones QRS')
+plt.plot(ecg_one_lead_norm, label='ECG normalizado')
+plt.title('Detección de latidos')
+plt.grid(True)
 plt.legend()
-plt.title('detección de latidos')
+plt.tight_layout()
 plt.show()
 
+
+#le hago un poco de zoom
+plt.figure()
+plt.plot(ecg_detection_norm, label='Correlación normalizada')
+plt.plot(qrs, ecg_detection_norm[qrs], 'r*',label='qrs')
+plt.plot(ecg_one_lead_norm, label='ECG normalizado')
+
+plt.xlim(50000, 53000)   
+
+plt.title('detección de latidos (zoom)')
+plt.legend()
+plt.grid(True)
+plt.show()
 #%%
 #copiar prominencia
 qrs, promin=signal.find_peaks(ecg_detection_norm)
